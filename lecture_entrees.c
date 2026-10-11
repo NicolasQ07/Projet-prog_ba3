@@ -1,9 +1,9 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <errno.h>
 
-#include "validation_dimensions.h"
+#include "lecture_entrees.h"
 
 
 static long FileSize(FILE *fp)
@@ -26,11 +26,34 @@ static int ReadU32(FILE *fp, uint32_t *v)
 }
 
 
+int ReadSeuil(const char *str, int *seuil)
+{
+    char *fin;
+    long  v;
+
+    errno = 0;
+    v = strtol(str, &fin, 10);
+    if (fin == str || *fin != '\0' || errno == ERANGE) return ERR_SEUIL;
+    if (v < SEUIL_MIN || v > SEUIL_MAX)                return ERR_SEUIL;
+    *seuil = (int)v;
+    return OCR_OK;
+}
+
 int ValidateDim(uint32_t W, uint32_t H)
 {
     if (W < DIM_MIN     || W > DIM_MAX)     return ERR_DIM_RANGE;
     if (H < DIM_MIN     || H > DIM_MAX)     return ERR_DIM_RANGE;
     if (W < DIGIT_SIZE  || H < DIGIT_SIZE)  return ERR_DIM_SMALL;
+    return OCR_OK;
+}
+
+int ValidatePixels(const unsigned char *cell, size_t n)
+{
+    size_t i;
+
+    for (i = 0; i < n; i++) {
+        if (cell[i] > 1) return ERR_PIX_VAL;
+    }
     return OCR_OK;
 }
 
@@ -78,14 +101,20 @@ int ReadCell(const char *path, unsigned char **cell, uint32_t *W, uint32_t *H)
     }
 
     fclose(fp);
+
+    err = ValidatePixels(buf, n);
+    if (err != OCR_OK) { free(buf); return err; }
+
     *cell = buf;
     return OCR_OK;
 }
 
-const char *DimErrorMsg(int err)
+const char *ErrorMsg(int err)
 {
     switch (err) {
         case OCR_OK:        return "ok";
+        case ERR_ARGS:      return "nombre de parametres incorrect (chemin + 3 seuils)";
+        case ERR_SEUIL:     return "seuil invalide (entier 0..100 attendu)";
         case ERR_OPEN_IN:   return "Cell.bin introuvable ou illisible";
         case ERR_HEADER:    return "entete absente ou tronquee";
         case ERR_DIM_RANGE: return "dimensions hors bornes [10..100]";
@@ -93,6 +122,9 @@ const char *DimErrorMsg(int err)
         case ERR_MALLOC:    return "echec d'allocation memoire";
         case ERR_FEW_PIX:   return "pas assez de pixels dans le fichier";
         case ERR_MANY_PIX:  return "trop de pixels dans le fichier";
+        case ERR_PIX_VAL:   return "pixel different de 0 ou 1";
+        case ERR_OPEN_OUT:  return "CellValue.txt ne peut pas etre cree";
+        case ERR_WRITE:     return "erreur d'ecriture dans CellValue.txt";
         default:            return "erreur inconnue";
     }
 }
