@@ -3,13 +3,17 @@ CFLAGS  = -std=c11 -Wall -Wextra -Wpedantic -Wconversion -g -O0
 LDFLAGS =
 
 OBJ     = dim.o
-BINS    = test_dim test_read
+BINS    = OCR test_dim test_read
 
-.PHONY: all test clean fichiers memcheck
+.PHONY: all test test_ocr clean fichiers memcheck
 
 all: $(BINS)
 
-# edition de liens 
+# executable du projet : un seul fichier source
+OCR: OCR.c
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
+
+# edition de liens
 test_dim:  test_dim.o  $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
@@ -48,7 +52,15 @@ test: all fichiers
 	@./test_read tests/t_tronq.bin        -115
 	@./test_read tests/inexistant.bin     -110
 	@echo ""
+	@echo "=== Tests de l'executable OCR ==="
+	@echo ""
+	@bash test_ocr.sh ./OCR tests
+	@echo ""
 	@echo "=== Campagne terminee ==="
+
+# campagne de tests de OCR seul (codes d'erreur + CellValue.txt)
+test_ocr: OCR fichiers
+	@bash test_ocr.sh ./OCR tests
 
 # controle des fuites memoire 
 memcheck: all fichiers
@@ -60,4 +72,4 @@ memcheck: all fichiers
 
 clean:
 	rm -f *.o $(BINS)
-	rm -rf tests
+	rm -rf OCR.dSYM tests
