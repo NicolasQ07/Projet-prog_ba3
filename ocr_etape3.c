@@ -32,20 +32,33 @@ free(Cell); */
 
 // Cell == [0,1,....1,1,0][...] ([75][75])
 
-bin_to_array (){
+read_bitmap_pixel (){
   /**
-  bin_to_array
+  read_bitmap_pixel
 
-Converts a binary bitmap to a array.
+  Takes a bitmap position, accesses the pixels value by using a mask, returns said value.
 
   Input
-    DigitBitmap.bin
+    output of select bitmap pixel??
   Return
-    return: DigitBitmap[][]
+    return: 0 : white, or 1 : black, error if neither;
 
 */
-
 }
+compare_pixels (){
+  /**
+  compare_pixels
+
+  Takes a bitmap pixel and a cell pixel and compares them, stores the results in a
+
+  Input
+    output of select bitmap pixel??
+  Return
+    return: 0 : white, or 1 : black, error if neither;
+
+*/
+}
+
 
 num_checker (unsigned char* Cell, int32_t* DigitBitmap  ){
   /**
