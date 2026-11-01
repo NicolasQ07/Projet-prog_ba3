@@ -57,4 +57,5 @@ int main (int argc, const char *argv[]){
 
   printf("d:'%c', %.4f%%\n", chiffre, pourcentage);
   return OCR_OK;
+
 }
