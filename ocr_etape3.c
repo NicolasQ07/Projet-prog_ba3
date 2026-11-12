@@ -15,11 +15,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include "lecture_entrees.c"
 #include "lecture_entrees.h"
-#include "main.c"
-#include "sauvegarde_resultat.c"
 #include "sauvegarde_resultat.h"
+#include "FontRasterized_0_1.h"
+//#include "lecture_entrees.c"
+//#include "main.c"
+//#include "sauvegarde_resultat.c"
+
 
 /* unsigned int width, height;
  ... fread width and height, check they are in 10..100 ...
@@ -32,74 +34,67 @@ free(Cell); */
 
 // Cell == [0,1,....1,1,0][...] ([75][75])
 
-read_bitmap_pixel (){
+unsigned char GetCellBit(const unsigned char *cell, int width, int line, int col){
   /**
-  read_bitmap_pixel
+  GetCellBit
 
-  Takes a bitmap position, accesses the pixels value by using a mask, returns said value.
+  Takes a cell array and reads a single pixel at position determined by line and column number as well as the cell's width.
 
   Input
-    output of select bitmap pixel??
+    cell as a 1D array, from ReadCell in lecture_entrees.c
   Return
-    return: 0 : white, or 1 : black, error if neither;
+    the value of the pixel at a given position.
+  */
 
-*/
+  unsigned char cbit = cell[width*line+col];
+  return cbit;
+
 }
-compare_pixels (){
-  /**
-  compare_pixels
 
-  Takes a bitmap pixel and a cell pixel and compares them, stores the results in a
+void PrintCell (const unsigned char *cell, int width, int height){
+  /**
+  Print Cell
+  (test)
+
+  Takes a cell array, reads all it's pixels and prints them as a grid.
 
   Input
-    output of select bitmap pixel??
+    cell as a 1D array
+  Output
+    printed vision of the current cell (* for 1, . for 0)
   Return
-    return: 0 : white, or 1 : black, error if neither;
+    N/A
+  */
 
-*/
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++){
+      if (GetCellBit(cell, width, i, j) == 1){
+        printf("*");
+      }
+      else if (GetCellBit(cell, width, i, j) == 0){
+        printf(".");
+      }
+      //no need for other cases because verified by ValidatePixels;
+    }
+    printf("\n");
+  }
+  return;
 }
 
-
-num_checker (unsigned char* Cell, int32_t* DigitBitmap  ){
+unsigned char GetDigitBitmapBit(int digit, int line, int col){
   /**
-  num_checker
+  GetDigitBitmapBit
 
-  Passes a bitmap corresponding to a given digit all over the current cell,
-  determines the position and value of the highest percentage cell-bitmap match.
+  Takes a digit bitmap, and finds the bit value at a specific line and column position.
 
   Input
-    unsigned char* Cell: pointer to an array (typically 75x75) containing a bitmap of the current cell
-    unsigned char* DigitBitmap: pointer to an array (32x32) containing a bitmap of the number being verified
-  Outputs
-    d = digit (0, 1 or -1 for vide)
-    p = percent match to d
-    best_pos = position of closest match for d
-    (digit, similarity percentage, position)
+    digit: 1 or 0
   Return
-    return: ???
-
-*/
-
+    the value of the pixel at a given position.
+  */
 }
-// !!! What to do if two different numbers hit the required percent?
+int    CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY);
+double BestMatchPercent(const unsigned char *cell, int width, int height, int digit);
+double WhitePercent(const unsigned char *cell, int width, int height);
+int    RecognizeCell(/* cell, size, 3 thresholds, char *digit, double *percent */);
 
-num_confirmer (){
-  /**
-  num_confirmer
-
-  Compares the percentage matches of a given cell to different bitmaps,
-  returns an error and terminates the program if no matches or more than one match.
-
-  Input
-    d = digit (0, 1 or -1 for vide)
-    p = percent match to d
-    best_pos = position of closest match for d
-  Outputs
-    CellValue.txt : File containing the value of the number
-    syntax: d:'digit', percent% retour à la ligne
-    (digit contained in the current cell, as well as its similarity percentage)
-  Return
-    return: error code ( not sure yet, to be specified later)
-
-*/
-}
