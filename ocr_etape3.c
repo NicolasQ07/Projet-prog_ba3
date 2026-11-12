@@ -93,6 +93,10 @@ unsigned char GetDigitBitmapBit(int digit, int line, int col){
   Return
     the value of the pixel at a given position.
   */
+
+  uint32_t row = DigitBitmap[line][col];
+
+  //rem. columnn 0 is the leftmost pixel (most significant bit in little Endian)
 }
 
 int    CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY){
