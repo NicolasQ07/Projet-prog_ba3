@@ -85,7 +85,8 @@ unsigned char GetDigitBitmapBit(int digit, int line, int col){
   /**
   GetDigitBitmapBit
 
-  Takes a digit bitmap, and finds the bit value at a specific line and column position.
+  Takes a digit, accesses the corresponding digit bitmap,
+  and finds the bit value at a specific line and column position.
 
   Input
     digit: 1 or 0
@@ -93,8 +94,56 @@ unsigned char GetDigitBitmapBit(int digit, int line, int col){
     the value of the pixel at a given position.
   */
 }
-int    CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY);
-double BestMatchPercent(const unsigned char *cell, int width, int height, int digit);
-double WhitePercent(const unsigned char *cell, int width, int height);
-int    RecognizeCell(/* cell, size, 3 thresholds, char *digit, double *percent */);
+
+int    CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY){
+  /**
+  CountMatches
+
+  Counts the number of matches between a given cell and a given digit,
+  at a certain position determined by a given offset.
+
+  Input
+    cell (as an array), digit (0 or 1), offset X and Y (in pixels)
+  Return
+    the percentage match of the chosen part of the cell to the chosen digit at that position.
+  */
+}
+
+double BestMatchPercent(const unsigned char *cell, int width, int height, int digit){
+  /**
+  BestMatchPercent
+
+  Takes a cell, along with its dimensions, and determines the digit which it matches best,
+  then writes the result in a seperate file.
+
+  Input
+    cell (as an array), the cell's width and height as ints, digit (0 or 1)
+  Return
+    the digit which best matches the cell;
+  */
+}
+double WhitePercent(const unsigned char *cell, int width, int height){
+  /**
+  White Percent
+
+  Takes a cell, determines what percentage of its pixels are white;
+
+  Input
+    cell (as an array), its width and height as ints.
+  Return
+    the percentage of white pixels in a cell;
+  */
+}
+int RecognizeCell(/* cell, size, 3 thresholds, char *digit, double *percent */){
+  /**
+  RecognizeCell
+
+  Takes a cell, along with its size, and the 3 percentage thresholds for a 1, a 0 or "vide":
+
+  Input
+
+  Return
+    the digit which best matches the cell;
+  */
+}
 
