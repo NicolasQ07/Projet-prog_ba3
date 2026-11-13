@@ -25,6 +25,7 @@
 #define ERR_PIX_VAL    -150
 #define ERR_OPEN_OUT   -160
 #define ERR_WRITE      -165
+#define ERR_NO_MATCH   -170
 
 
 int ReadSeuil(const char *str, int *seuil);

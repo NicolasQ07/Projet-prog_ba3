@@ -125,6 +125,7 @@ const char *ErrorMsg(int err)
         case ERR_PIX_VAL:   return "pixel different de 0 ou 1";
         case ERR_OPEN_OUT:  return "CellValue.txt ne peut pas etre cree";
         case ERR_WRITE:     return "erreur d'ecriture dans CellValue.txt";
+        case ERR_NO_MATCH:  return "valeur de la case pas reconnue";
         default:            return "erreur inconnue";
     }
 }

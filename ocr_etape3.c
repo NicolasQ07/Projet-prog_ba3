@@ -177,7 +177,7 @@ double WhitePercent(const unsigned char *cell, int width, int height){
   return fracwhite*100;
 }
 
-int RecognizeCell(const unsigned char *cell cell, int width, int height, int seuilV, int seuil0, int seuil1, char *blankdigit, double *blankpercent){
+int RecognizeCell(const unsigned char *cell, int width, int height, int seuilV, int seuil0, int seuil1, char *blankdigit, double *blankpercent){
   /**
   RecognizeCell
 
@@ -195,11 +195,30 @@ int RecognizeCell(const unsigned char *cell cell, int width, int height, int seu
     assigning a percent to *blankpercent;
 
   Return
-    nothing?;
+    OCR_OK (an int confirming the function's successful run), or an error;
   */
 
+  double whitepercent = WhitePercent(cell, width, height);
 
-
-
+  if (whitepercent >= seuilV){
+    *blankdigit = ' Vide ';
+    *blankpercent = whitepercent;
+    return OCR_OK;
+  }
+  double bestmatch0 = BestMatchPercent(cell, width, height, 0);
+  double bestmatch1 = BestMatchPercent(cell, width, height, 1);
+  if (bestmatch0 >= seuil0 && bestmatch0-seuil0 > bestmatch1-seuil1){
+    *blankdigit = '0';
+    *blankpercent = bestmatch0;
+  }
+  else if (bestmatch1 >= seuil1 && bestmatch1-seuil1 > bestmatch0-seuil0){
+    *blankdigit = '1';
+    *blankpercent = bestmatch1;
+  }
+  else {
+    return ERR_NO_MATCH;
+    //a tie between 0 and 1 counts as no match.
+  }
+  return OCR_OK;
 }
 
