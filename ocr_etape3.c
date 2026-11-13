@@ -48,7 +48,6 @@ unsigned char GetCellBit(const unsigned char *cell, int width, int line, int col
 
   unsigned char cbit = cell[width*line+col];
   return cbit;
-
 }
 
 void PrintCell (const unsigned char *cell, int width, int height){
@@ -114,6 +113,7 @@ int CountMatches(const unsigned char *cell, int width, int digit, int offX, int 
     the number of identical pixel matches of the chosen part of the cell to the chosen digit
     at that position.
   */
+
   int matchcount = 0;
   for (int l = 0; l < (int)DIGIT_SIZE; l++){
     for (int c = 0; c < (int)DIGIT_SIZE; c++){
@@ -135,9 +135,23 @@ double BestMatchPercent(const unsigned char *cell, int width, int height, int di
   Input
     cell (as an array), the cell's width and height as ints, digit (0 or 1)
   Return
-    the digit which best matches the cell;
+    the highest percentage match between the cell and the chosen digit;
   */
+
+  int totalpix = (int)DIGIT_SIZE * (int)DIGIT_SIZE;
+  int maxpixelmatch = 0;
+  for (int l = 0; l < height-(int)DIGIT_SIZE+1; l++){
+    for (int c = 0; c < width-(int)DIGIT_SIZE+1; c++){
+      int currentmatch = CountMatches(cell, width, digit, c, l);
+      if (currentmatch > maxpixelmatch){
+        maxpixelmatch = currentmatch;
+      }
+    }
+  }
+  double fracmatch = (double)maxpixelmatch/(double)totalpix;
+  return fracmatch*100;
 }
+
 double WhitePercent(const unsigned char *cell, int width, int height){
   /**
   White Percent
