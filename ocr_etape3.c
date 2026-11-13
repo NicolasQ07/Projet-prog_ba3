@@ -66,12 +66,12 @@ void PrintCell (const unsigned char *cell, int width, int height){
     N/A
   */
 
-  for (int i = 0; i < height; i++) {
-    for (int j = 0; j < width; j++){
-      if (GetCellBit(cell, width, i, j) == 1){
+  for (int l = 0; l < height; l++) {
+    for (int c = 0; c < width; c++){
+      if (GetCellBit(cell, width, l, c) == 1){
         printf("*");
       }
-      else if (GetCellBit(cell, width, i, j) == 0){
+      else if (GetCellBit(cell, width, l, c) == 0){
         printf(".");
       }
       //no need for other cases because verified by ValidatePixels;
@@ -101,7 +101,7 @@ unsigned char GetDigitBitmapBit(int digit, int line, int col){
   return bitvalue != 0;
 }
 
-int    CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY){
+int CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY){
   /**
   CountMatches
 
@@ -111,8 +111,18 @@ int    CountMatches(const unsigned char *cell, int width, int digit, int offX, i
   Input
     cell (as an array), digit (0 or 1), offset X and Y (in pixels)
   Return
-    the number of identical pixel matches of the chosen part of the cell to the chosen digit at that position.
+    the number of identical pixel matches of the chosen part of the cell to the chosen digit
+    at that position.
   */
+  int matchcount = 0;
+  for (int l = 0; l < (int)DIGIT_SIZE; l++){
+    for (int c = 0; c < (int)DIGIT_SIZE; c++){
+      if (GetDigitBitmapBit(digit, l, c) == GetCellBit(cell, width, l + offY, c + offX)){
+        matchcount++;
+      }
+    }
+  }
+  return matchcount;
 }
 
 double BestMatchPercent(const unsigned char *cell, int width, int height, int digit){
