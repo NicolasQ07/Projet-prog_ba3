@@ -177,16 +177,29 @@ double WhitePercent(const unsigned char *cell, int width, int height){
   return fracwhite*100;
 }
 
-int RecognizeCell(/* cell, size, 3 thresholds, char *digit, double *percent */){
+int RecognizeCell(const unsigned char *cell cell, int width, int height, int seuilV, int seuil0, int seuil1, char *blankdigit, double *blankpercent){
   /**
   RecognizeCell
 
-  Takes a cell, along with its size, and the 3 percentage thresholds for a 1, a 0 or "vide":
+  Takes a cell, along with its size, the 3 percentage thresholds for a 1, a 0 or "vide"
+  and a pointer to a blank digit and percentage,
+  to which it assigns the best matching digit and its match percent or "vide".
 
   Input
+    *cell from ReadCell
+    size of *cell (width and height from ReadCell
+    3 thresholds from main.c
+    char *blankdigit, double *blankpercent
+  Output
+    assigning a digit to *blankdigit;
+    assigning a percent to *blankpercent;
 
   Return
-    the digit which best matches the cell;
+    nothing?;
   */
+
+
+
+
 }
 
