@@ -138,7 +138,7 @@ double BestMatchPercent(const unsigned char *cell, int width, int height, int di
     the highest percentage match between the cell and the chosen digit;
   */
 
-  int totalpix = (int)DIGIT_SIZE * (int)DIGIT_SIZE;
+  int totalsectionpix = (int)DIGIT_SIZE * (int)DIGIT_SIZE;
   int maxpixelmatch = 0;
   for (int l = 0; l < height-(int)DIGIT_SIZE+1; l++){
     for (int c = 0; c < width-(int)DIGIT_SIZE+1; c++){
@@ -148,7 +148,7 @@ double BestMatchPercent(const unsigned char *cell, int width, int height, int di
       }
     }
   }
-  double fracmatch = (double)maxpixelmatch/(double)totalpix;
+  double fracmatch = (double)maxpixelmatch/(double)totalsectionpix;
   return fracmatch*100;
 }
 
@@ -163,7 +163,20 @@ double WhitePercent(const unsigned char *cell, int width, int height){
   Return
     the percentage of white pixels in a cell;
   */
+
+  int totalcellpix = width*height;
+  int whitecount = 0;
+  for (int l = 0; l < height; l++){
+    for (int c = 0; c < width; c++){
+      if (GetCellBit(cell, width, l, c) == 0){
+        whitecount ++;
+      }
+    }
+  }
+  double fracwhite = (double)whitecount/(double)totalcellpix;
+  return fracwhite*100;
 }
+
 int RecognizeCell(/* cell, size, 3 thresholds, char *digit, double *percent */){
   /**
   RecognizeCell
