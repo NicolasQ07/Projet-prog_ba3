@@ -56,7 +56,7 @@ void PrintCell (const unsigned char *cell, int width, int height){
   Print Cell
   (test)
 
-  Takes a cell array, reads all it's pixels and prints them as a grid.
+  Takes a cell array, reads all its pixels and prints them as a grid.
 
   Input
     cell as a 1D array
@@ -94,9 +94,11 @@ unsigned char GetDigitBitmapBit(int digit, int line, int col){
     the value of the pixel at a given position.
   */
 
-  uint32_t row = DigitBitmap[line][col];
-
-  //rem. columnn 0 is the leftmost pixel (most significant bit in little Endian)
+  uint32_t row = DigitBitmap[digit][line];
+  uint32_t onebitmask = 0x00000001;
+  uint32_t selectionmask = onebitmask << (31-col);
+  uint32_t bitvalue = selectionmask & row;
+  return bitvalue != 0;
 }
 
 int    CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY){
@@ -109,7 +111,7 @@ int    CountMatches(const unsigned char *cell, int width, int digit, int offX, i
   Input
     cell (as an array), digit (0 or 1), offset X and Y (in pixels)
   Return
-    the percentage match of the chosen part of the cell to the chosen digit at that position.
+    the number of identical pixel matches of the chosen part of the cell to the chosen digit at that position.
   */
 }
 
@@ -117,8 +119,8 @@ double BestMatchPercent(const unsigned char *cell, int width, int height, int di
   /**
   BestMatchPercent
 
-  Takes a cell, along with its dimensions, and determines the digit which it matches best,
-  then writes the result in a seperate file.
+  Takes a cell, along with its dimensions,
+  and determines the highest percentage match of a cell to one digit.
 
   Input
     cell (as an array), the cell's width and height as ints, digit (0 or 1)
