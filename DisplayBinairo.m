@@ -3,6 +3,11 @@ function DisplayBinairo(Original, Solution, file, feasible)
 
 n = size(Original, 1);
 
+% file can be the source image or the PDF, with or without its folder:
+% the title shows only the file name, the PDF is always saved as .pdf next to it
+[folder, name, ext] = fileparts(file);
+pdfFile = fullfile(folder, [name '.pdf']);
+
 % Create a figure
 fig = figure('Visible', 'off', 'Color', 'white');
 hold on;
@@ -59,7 +64,7 @@ axis([0 n 0 n]);
 axis off;
 
 % Filename at top left
-text(0, n + 0.25, file, ...
+text(0, n + 0.25, [name ext], ...
     'FontSize', 10, ...
     'Interpreter', 'none', ...
     'HorizontalAlignment', 'left');
@@ -70,7 +75,7 @@ text(n, n + 0.4, datestr(now), ...
     'HorizontalAlignment', 'right');
 
 % Export figure to PDF
-exportgraphics(fig, file, 'ContentType', 'vector');
+exportgraphics(fig, pdfFile, 'ContentType', 'vector');
 
 % Close figure
 close(fig);

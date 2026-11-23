@@ -2,55 +2,20 @@ CC      = cc
 CFLAGS  = -std=c11 -Wall -Wextra -Wpedantic -Wconversion -g -O0
 LDFLAGS =
 
-OBJ     = dim.o
-BINS    = OCR test_dim test_read
-
 .PHONY: all test test_ocr clean fichiers memcheck
 
-all: $(BINS)
+all: OCR
 
 # executable du projet : un seul fichier source
 OCR: OCR.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
-# edition de liens
-test_dim:  test_dim.o  $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^
-
-test_read: test_read.o $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^
-
-# compilation 
-%.o: %.c dim.h
-	$(CC) $(CFLAGS) -c $< -o $@
-
-# fichiers de test 
+# fichiers de test
 fichiers:
 	python3 gen_tests.py
 
-# campagne de tests 
-test: all fichiers
-	@echo ""
-	@./test_dim
-	@echo ""
-	@echo "=== Tests d'integration ReadCell ==="
-	@echo ""
-	@./test_read tests/t_ok.bin              0
-	@./test_read tests/t_nonsquare.bin       0
-	@./test_read tests/t_min32.bin           0
-	@./test_read tests/t_max100.bin          0
-	@./test_read tests/t_zero.bin         -120
-	@./test_read tests/t_sous10.bin       -120
-	@./test_read tests/t_sur100.bin       -120
-	@./test_read tests/t_neg100.bin       -120
-	@./test_read tests/t_swap.bin         -120
-	@./test_read tests/t_31.bin           -125
-	@./test_read tests/t_20.bin           -125
-	@./test_read tests/t_manque.bin       -140
-	@./test_read tests/t_trop.bin         -145
-	@./test_read tests/t_vide.bin         -115
-	@./test_read tests/t_tronq.bin        -115
-	@./test_read tests/inexistant.bin     -110
+# campagne de tests de OCR (codes d'erreur + CellValue.txt)
+test: OCR fichiers
 	@echo ""
 	@echo "=== Tests de l'executable OCR ==="
 	@echo ""
@@ -58,18 +23,17 @@ test: all fichiers
 	@echo ""
 	@echo "=== Campagne terminee ==="
 
-# campagne de tests de OCR seul (codes d'erreur + CellValue.txt)
-test_ocr: OCR fichiers
-	@bash test_ocr.sh ./OCR tests
+test_ocr: test
 
-# controle des fuites memoire 
-memcheck: all fichiers
+# controle des fuites memoire (valgrind, Linux) : seules les erreurs de
+# valgrind (code 9) sont signalees, pas les codes d'erreur normaux de OCR
+memcheck: OCR fichiers
 	@for f in tests/*.bin; do \
 	    valgrind --error-exitcode=9 --leak-check=full \
-	             --errors-for-leak-kinds=all -q ./test_read $$f \
-	    || echo "  >>> PROBLEME sur $$f"; \
+	             --errors-for-leak-kinds=all -q ./OCR $$f 90 90 90 > /dev/null 2>&1; \
+	    if [ $$? -eq 9 ]; then echo "  >>> PROBLEME sur $$f"; fi; \
 	done
 
 clean:
-	rm -f *.o $(BINS)
+	rm -f OCR
 	rm -rf OCR.dSYM tests

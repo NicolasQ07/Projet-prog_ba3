@@ -1,0 +1,7 @@
+# fichiers generes : executable, debug, fichiers de test, resultats
+OCR
+OCR.dSYM/
+*.o
+tests/
+CellValue.txt
+.DS_Store

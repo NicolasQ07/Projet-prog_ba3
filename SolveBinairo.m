@@ -37,6 +37,14 @@ if ~valid
     return;
 end
 
+% Check every row and column, also the ones that were already full
+for k = 1:n
+    if ~CheckVectorOk(grid(k,:), n) || ~CheckVectorOk(grid(:,k), n) || ~CheckVectorUniqueOk(grid, k, k, n)
+        valid = false;
+        return;
+    end
+end
+
 % No empty cells -> solved
 if ~any(isnan(grid(:)))
     valid = true;

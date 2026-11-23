@@ -14,8 +14,15 @@
     Steps (project slide 17)
       1) read the header of Cell.bin (width, height) and validate it
       2) read the width x height pixels in one go into a malloc'ed array
-      3) recognise '0', '1' or empty (in progress),
-         main() currently saves the placeholder  d:' ', 0.0000%
+      3) recognise '0', '1' or empty (slides 7 to 9 and 17):
+         - empty first: the cell is empty if its percentage of white pixels
+           is >= seuilVide
+         - otherwise each 32x32 digit bitmap is moved over the cell, 1 pixel
+           at a time, and the best percentage of identical pixels (black and
+           white, out of 32x32) is kept for each digit
+         - a digit is kept if its best percentage is >= its threshold; if both
+           are kept, the one that exceeds its threshold the most wins
+         - neither empty nor a digit above its threshold -> ERR_NO_MATCH
       4) save the digit and its similarity in CellValue.txt, created in the
          same folder as Cell.bin
 
@@ -45,11 +52,12 @@
       C standard library only (C11).
       Build:  cc -std=c11 -Wall -Wextra -Wpedantic -Wconversion -o OCR OCR.c
       Add -DDEBUG_HEADER to print the header of Cell.bin while reading it
+      Add -DDEBUG_CELL to print the pixels of the cell (* = black, . = white)
 
     Authors
       Nicolas Quintane, Tetyana Kulakova
 
-    29.10.2026, v3
+    16.11.2026, v4
 
     Revision
       23.09.2026, TK, reading of Cell.bin (OCR_Teutch.c)
@@ -57,6 +65,8 @@
       11.10.2026, NQ, v2: thresholds, error messages, CellValue.txt
       29.10.2026, NQ, v3: everything merged in this single file,
                           documentation, error handling review
+      13.11.2026, TK, step 3: recognition of the digit (ocr_etape3.c)
+      16.11.2026, NQ, v4: step 3 merged in this file
 */
 
 #include <stdio.h>
@@ -93,10 +103,27 @@
 #define ERR_READ       -135     // I/O error while reading Cell.bin  
 #define ERR_FEW_PIX    -140     // fewer than width x heght pixels 
 #define ERR_MANY_PIX   -145     // more than width x height pixels
-#define ERR_PIX_VAL    -150     // a pixel is neither 0 nor 1        
-#define ERR_OPEN_OUT   -160     // CellValue.txt cannot be created      
-#define ERR_WRITE      -165     // error while writing CellValue.txt   
+#define ERR_PIX_VAL    -150     // a pixel is neither 0 nor 1
+#define ERR_NO_MATCH   -155     // neither empty nor a digit above its threshold
+#define ERR_OPEN_OUT   -160     // CellValue.txt cannot be created
+#define ERR_WRITE      -165     // error while writing CellValue.txt
 #define ERR_PARAM      -170     // invalid argument given to a function
+
+// Bitmaps of the digits '0' and '1' (Helvetica bold 39pt), copied from
+// FontRasterized_0_1.h (moodle) so that OCR.c stays a single file.
+// One int32_t per line of 32 pixels, the leftmost pixel is the bit 2^31, 1 = black
+static const int32_t DigitBitmap[2][DIGIT_SIZE] =
+{ /*-  0  -*/
+    {0x0, 0x0, 0xFF0000, 0x3FFC000, 0x7FFE000, 0xFFFE000, 0xFFFF000, 0x1FC3F000,
+     0x1F83F000, 0x1F81F800, 0x3F01F800, 0x3F01F800, 0x3F01F800, 0x3F01F800, 0x3F01F800, 0x3F01F800,
+     0x3F01F800, 0x3F01F800, 0x3F01F800, 0x3F01F800, 0x3F01F800, 0x3F01F800, 0x1F81F800, 0x1F81F800,
+     0x1FC3F000, 0xFE7F000, 0xFFFF000, 0x7FFE000, 0x7FFC000, 0x1FF8000, 0x3C0000, 0x0, },
+  /*-  1  -*/
+    {0x0, 0x0, 0x1F0000, 0x1F0000, 0x3F0000, 0x7F0000, 0x1FF0000, 0x1FFF0000,
+     0x1FFF0000, 0x1FFF0000, 0xFFF0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000,
+     0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000,
+     0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x3F0000, 0x0, 0x0, },
+};
 
 
 // Prototypes
@@ -107,6 +134,14 @@ static int ValidateDim(uint32_t W, uint32_t H);
 static int ValidatePixels(const unsigned char *cell, size_t n);
 static int  ReadCell(const char *path, unsigned char **cell, uint32_t *W, uint32_t *H);
 static const char *ErrorMsg(int err);
+
+// recognition of the digit, step 3 (was ocr_etape3.c)
+static int RecognizeCell(const unsigned char *cell, int width, int height,
+                         int seuilV, int seuil0, int seuil1,
+                         char *blankdigit, double *blankpercent);
+#ifdef DEBUG_CELL
+static void PrintCell(const unsigned char *cell, int width, int height);
+#endif
 
 // saving of the result (was sauvegarde_resultat.c)
 static int WriteCellValue(const char *cellPath, char digit, double percent);
@@ -379,11 +414,203 @@ static const char *ErrorMsg(int err)
         case ERR_FEW_PIX:   return "pas assez de pixels dans le fichier";
         case ERR_MANY_PIX:  return "trop de pixels dans le fichier";
         case ERR_PIX_VAL:   return "pixel different de 0 ou 1";
+        case ERR_NO_MATCH:  return "valeur de la case pas reconnue";
         case ERR_OPEN_OUT:  return "CellValue.txt ne peut pas etre cree";
         case ERR_WRITE:     return "erreur d'ecriture dans CellValue.txt";
         case ERR_PARAM:     return "parametre de fonction invalide (erreur interne)";
         default:            return "erreur inconnue";
     }
+}
+
+
+
+// Recognition of the digit, step 3 (was ocr_etape3.c)
+
+
+/**
+   GetCellBit
+
+   Takes a cell array and reads a single pixel at position determined by line
+   and column number as well as the cell's width
+
+   Input = cell as a 1D array (from ReadCell), its width, line and column
+   Return = the value of the pixel at that position (0 or 1)
+*/
+static unsigned char GetCellBit(const unsigned char *cell, int width, int line, int col)
+{
+    unsigned char cbit = cell[width*line+col];
+    return cbit;
+}
+
+#ifdef DEBUG_CELL
+/**
+   PrintCell
+   (test)
+
+   Takes a cell array, reads all its pixels and prints them as a grid
+   (* for 1, . for 0). Compiled only with -DDEBUG_CELL
+
+   Input = cell as a 1D array, its width and height
+*/
+static void PrintCell(const unsigned char *cell, int width, int height)
+{
+    for (int l = 0; l < height; l++) {
+        for (int c = 0; c < width; c++){
+            if (GetCellBit(cell, width, l, c) == 1){
+                printf("*");
+            }
+            else if (GetCellBit(cell, width, l, c) == 0){
+                printf(".");
+            }
+            //no need for other cases because verified by ValidatePixels;
+        }
+        printf("\n");
+    }
+    return;
+}
+#endif
+
+/**
+   GetDigitBitmapBit
+
+   Takes a digit, accesses the corresponding digit bitmap,
+   and finds the bit value at a specific line and column position
+   (column 0 is the bit 2^31, project slide 10)
+
+   Input = digit: 1 or 0, line and col: 0..31
+   Return = the value of the pixel at that position (0 or 1)
+*/
+static unsigned char GetDigitBitmapBit(int digit, int line, int col)
+{
+    uint32_t row = (uint32_t)DigitBitmap[digit][line];
+    uint32_t onebitmask = 0x00000001;
+    uint32_t selectionmask = onebitmask << (31-col);
+    uint32_t bitvalue = selectionmask & row;
+    return bitvalue != 0;
+}
+
+/**
+   CountMatches
+
+   Counts the number of matches between a given cell and a given digit,
+   at a certain position determined by a given offset
+
+   Input = cell (as an array), its width, digit (0 or 1), offset X and Y (in pixels)
+   Return = the number of identical pixel matches of the chosen part of the cell
+     to the chosen digit at that position (0..1024)
+*/
+static int CountMatches(const unsigned char *cell, int width, int digit, int offX, int offY)
+{
+    int matchcount = 0;
+    for (int l = 0; l < (int)DIGIT_SIZE; l++){
+        for (int c = 0; c < (int)DIGIT_SIZE; c++){
+            if (GetDigitBitmapBit(digit, l, c) == GetCellBit(cell, width, l + offY, c + offX)){
+                matchcount++;
+            }
+        }
+    }
+    return matchcount;
+}
+
+/**
+   BestMatchPercent
+
+   Takes a cell, along with its dimensions,
+   and determines the highest percentage match of a cell to one digit.
+   The digit is moved over every position where it fits entirely in the cell,
+   the last one included (offset width-32 and height-32)
+
+   Input = cell (as an array), the cell's width and height as ints, digit (0 or 1)
+   Return = the highest percentage match between the cell and the chosen digit
+*/
+static double BestMatchPercent(const unsigned char *cell, int width, int height, int digit)
+{
+    int totalsectionpix = (int)DIGIT_SIZE * (int)DIGIT_SIZE;
+    int maxpixelmatch = 0;
+    for (int l = 0; l < height-(int)DIGIT_SIZE+1; l++){
+        for (int c = 0; c < width-(int)DIGIT_SIZE+1; c++){
+            int currentmatch = CountMatches(cell, width, digit, c, l);
+            if (currentmatch > maxpixelmatch){
+                maxpixelmatch = currentmatch;
+            }
+        }
+    }
+    double fracmatch = (double)maxpixelmatch/(double)totalsectionpix;
+    return fracmatch*100;
+}
+
+/**
+   WhitePercent
+
+   Takes a cell, determines what percentage of its pixels are white
+
+   Input = cell (as an array), its width and height as ints
+   Return = the percentage of white pixels in the cell
+*/
+static double WhitePercent(const unsigned char *cell, int width, int height)
+{
+    int totalcellpix = width*height;
+    int whitecount = 0;
+    for (int l = 0; l < height; l++){
+        for (int c = 0; c < width; c++){
+            if (GetCellBit(cell, width, l, c) == 0){
+                whitecount ++;
+            }
+        }
+    }
+    double fracwhite = (double)whitecount/(double)totalcellpix;
+    return fracwhite*100;
+}
+
+/**
+   RecognizeCell
+
+   Takes a cell, along with its size, the 3 percentage thresholds for a 1, a 0 or "vide"
+   and a pointer to a blank digit and percentage,
+   to which it assigns the best matching digit and its match percent or "vide".
+
+   The empty test is done first (slide 9). If both digits reach their threshold,
+   the one with the biggest "best percent - threshold" wins (slide 17);
+   an exact tie counts as no match
+
+   Input = cell from ReadCell, its width and height (at least 32x32),
+     the 3 thresholds from the command line
+   Outputs = *blankdigit: '0', '1' or ' ' (empty), '?' on error
+     *blankpercent: match percent of the digit or white percent if empty, -1 on error
+   Return = OCR_OK, ERR_NO_MATCH, ERR_PARAM
+*/
+static int RecognizeCell(const unsigned char *cell, int width, int height,
+                         int seuilV, int seuil0, int seuil1,
+                         char *blankdigit, double *blankpercent)
+{
+    if (cell == NULL || blankdigit == NULL || blankpercent == NULL) return ERR_PARAM;
+    // invalid values on purpose: WriteCellValue refuses them if they are ever used
+    *blankdigit   = '?';
+    *blankpercent = -1.0;
+    if (width < (int)DIGIT_SIZE || height < (int)DIGIT_SIZE) return ERR_PARAM;
+
+    double whitepercent = WhitePercent(cell, width, height);
+
+    if (whitepercent >= seuilV){
+        *blankdigit = ' ';
+        *blankpercent = whitepercent;
+        return OCR_OK;
+    }
+    double bestmatch0 = BestMatchPercent(cell, width, height, 0);
+    double bestmatch1 = BestMatchPercent(cell, width, height, 1);
+    if (bestmatch0 >= seuil0 && bestmatch0-seuil0 > bestmatch1-seuil1){
+        *blankdigit = '0';
+        *blankpercent = bestmatch0;
+    }
+    else if (bestmatch1 >= seuil1 && bestmatch1-seuil1 > bestmatch0-seuil0){
+        *blankdigit = '1';
+        *blankpercent = bestmatch1;
+    }
+    else {
+        //a tie between 0 and 1 counts as no match.
+        return ERR_NO_MATCH;
+    }
+    return OCR_OK;
 }
 
 
@@ -564,10 +791,19 @@ int main (int argc, const char *argv[]){
   printf("Cell: %u x %u = %lu pixels lus\n",
          largeur, hauteur, (unsigned long)largeur * hauteur);
 
+#ifdef DEBUG_CELL
+  PrintCell(Cell, (int)largeur, (int)hauteur);
+#endif
+
   char   chiffre     = ' ';
   double pourcentage = 0.0;
 
+  err = RecognizeCell(Cell, (int)largeur, (int)hauteur, seuilV, seuil0, seuil1, &chiffre, &pourcentage);
   free(Cell);
+  if (err != OCR_OK){
+    fprintf(stderr, "Erreur %d: %s\n", err, ErrorMsg(err));
+    return err;
+  }
 
   err = WriteCellValue(path, chiffre, pourcentage);
   if (err != OCR_OK){
