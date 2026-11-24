@@ -1,33 +1,43 @@
-% SolveBinaro  solve a Binairo/Binoxxo/BinarySudoku/Takuzu/etc.
+% SolveBinairo  solve a Binairo/Binoxxo/BinarySudoku/Takuzu/etc.
 %
-%   [SOLUTION, SOLVED] = SolveBinaro(PUZZLE) solve a Binairo PUZZLE reccursively
-%    by 1) checking all constrains and when not sufficient
-%       2) make guess [0,1] in the first empty cell and
-%           continue while valid until solution is found 
-%           or backtrack to previous state
+%   [SOLUTION, SOLVED] = SolveBinairo(PUZZLE) solves a Binairo PUZZLE recursively
+%    by 1) checking all constraints and, when not sufficient,
+%       2) making a guess [0,1] in the first empty cell and
+%           continuing while valid until a solution is found
+%           or backtracking to the previous state
 %
 %   Rules
 %     1. each cell is '0' or '1'.
 %     2. never 3x '0' nor 3x '1' consecutive (rows or col)
-%     3. each row/col contains the same numner of '0', '1'
+%     3. each row/col contains the same number of '0', '1'
 %     4. each row/col are unique
-
-%   Input
-%     PUZZLE  n x n Grid of floats (n MUST be odd), NaN defines empty case
-%            
-%   Output
-%     SOLUTION  grid solved or last partialy solved grid
-%     SOLVED    true is a full and valid solution is found
 %
-%   v. 8.9.2026/ca
-%   
-%   Renommer ce fichier!
+%   Input
+%     PUZZLE  n x n grid of floats (n MUST be even), NaN defines an empty cell
+%
+%   Output
+%     SOLUTION  grid solved or last partially solved grid
+%     SOLVED    true if a full and valid solution is found, false if the grid
+%               has no solution or is not a Binairo (not square, odd size,
+%               value other than 0, 1 or NaN)
+%
+%   Mya Bennani, v. 24.11.2026
+%     07.10.2026, MB, solver and checks
+%     23.11.2026, NQ, every row and column checked, also the full ones
+%     24.11.2026, NQ, check of the input grid, printGrid, header
 %
 
 %% ------------------------------------------------------------------------------------------------------
 function [grid, valid] = SolveBinairo(grid)
 
 n = size(grid, 1);
+
+% A Binairo must be square, of even size, and only contain 0, 1 or NaN
+if n == 0 || size(grid, 2) ~= n || mod(n, 2) ~= 0 || ...
+        any(~isnan(grid(:)) & grid(:) ~= 0 & grid(:) ~= 1)
+    valid = false;
+    return;
+end
 
 % First solve everything possible without guessing
 [grid, valid] = DirectValues(grid, n);
@@ -210,5 +220,17 @@ end
 
 %% ------------------------------------------------------------------------------------------------------
 function printGrid(grid)
-     % print the current grid for debugging
+     % print the current grid for debugging, '.' for an empty cell
+     % (add printGrid(grid); anywhere in this file to follow the solver)
+     for r = 1:size(grid, 1)
+         for c = 1:size(grid, 2)
+             if isnan(grid(r,c))
+                 fprintf(' .');
+             else
+                 fprintf(' %d', grid(r,c));
+             end
+         end
+         fprintf('\n');
+     end
+     fprintf('\n');
 end
